@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sams_flutter_frontend/subject_registration/pages/MyRegistrationPage.dart';
-import 'subject_registration/pages/LoginPage.dart';
+import 'LoginPage.dart';
 
 void main() {
   runApp(const MyApp());

@@ -2,10 +2,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../config/api.dart'; // Adjust path if necessary
-import 'AddCoursePage.dart';    // Adjust path if necessary
+import 'config/api.dart'; // Adjust path if necessary
+import 'subject_registration/pages/AddCoursePage.dart';    // Adjust path if necessary
+import 'subject_registration/pages/PendingRegistrationPage.dart'; // NEW: Added Staff Page Import
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
   _LoginPageState createState() => _LoginPageState();
 }
@@ -14,8 +17,29 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  
+  // The new role variable
+  String selectedRole = 'Student';
 
   Future<void> _login() async {
+    // --- 1. THE STAFF BYPASS (No Database Needed) ---
+    if (selectedRole == 'Staff') {
+      if (_idController.text == 'admin' && _passwordController.text == 'admin123') {
+        // Send directly to the Staff Dashboard
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => PendingRegistrationPage())
+        );
+      } else {
+        // Wrong Staff Password
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Invalid Staff ID or Password"), backgroundColor: Colors.red)
+        );
+      }
+      return; // Stop the function here so it doesn't run the API below
+    }
+
+    // --- 2. THE STUDENT LOGIN (Normal Laravel API) ---
     setState(() => _isLoading = true);
 
     try {
@@ -31,23 +55,21 @@ class _LoginPageState extends State<LoginPage> {
       final data = json.decode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
-        // 1. OPEN THE VAULT
+        // Save the Student data to the vault
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        
-        // 2. SAVE THE SDD DATA (Notice we deleted the token line!)
         await prefs.setString('student_id', data['student_id']);
         await prefs.setString('student_name', data['student_name']);
         await prefs.setString('student_course', data['student_course']);
         await prefs.setInt('student_year', int.parse(data['student_year'].toString()));
 
-        // 3. GO TO ADD COURSE PAGE
-        Navigator.pushReplacement(
-          context, 
-          MaterialPageRoute(builder: (context) => AddCoursePage())
-        );
-        
+        // Go to Add Course Page
+        if (mounted) {
+          Navigator.pushReplacement(
+            context, 
+            MaterialPageRoute(builder: (context) => AddCoursePage())
+          );
+        }
       } else {
-        // Show wrong password error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(data['message'] ?? "Login failed"), backgroundColor: Colors.red)
         );
@@ -73,21 +95,30 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               const Icon(Icons.school, size: 80, color: Colors.blue),
               const SizedBox(height: 20),
-              const Text(
-                "Student Login",
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              
+              // Dynamic Title (Changes based on selection)
+              Text(
+                "$selectedRole Login",
+                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 40),
+
+              
+              const SizedBox(height: 16),
+
+              // Dynamic ID Field
               TextField(
                 controller: _idController,
                 decoration: InputDecoration(
-                  labelText: "Student ID",
+                  labelText: selectedRole == 'Student' ? "Student ID" : "Staff ID", // Changes text based on role
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
               const SizedBox(height: 16),
+              
+              // Password Field
               TextField(
                 controller: _passwordController,
                 obscureText: true,
@@ -99,6 +130,30 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(height: 30),
+
+              // --- NEW ROLE DROPDOWN ---
+              DropdownButtonFormField<String>(
+                value: selectedRole,
+                decoration: InputDecoration(
+                  labelText: 'Select Role',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                items: ['Student', 'Staff'].map((String role) {
+                  return DropdownMenuItem<String>(
+                    value: role,
+                    child: Text(role, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    selectedRole = newValue!;
+                  });
+                },
+              ),
+              
+              // Login Button
               _isLoading 
                 ? const CircularProgressIndicator()
                 : SizedBox(
@@ -120,3 +175,4 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+

@@ -6,6 +6,8 @@ import '../applications/GetAvailableCourses.dart';
 import '../applications/AddCourse.dart';
 import '../applications/GetCourseLabs.dart';
 import 'MyRegistrationPage.dart';
+import '../../MainDrawer.dart'; // The Main Drawer (for navigation)
+
 
 class AddCoursePage extends StatefulWidget {
   @override
@@ -230,7 +232,9 @@ class _AddCoursePageState extends State<AddCoursePage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade200,
       appBar: AppBar(
+        
         title: const Text('ADD COURSE', style: TextStyle(fontWeight: FontWeight.bold)),
+        
         backgroundColor: Colors.blue.shade800,
         foregroundColor: Colors.white,
         // --- WE ADDED THE ACTIONS LIST RIGHT HERE ---
@@ -250,6 +254,7 @@ class _AddCoursePageState extends State<AddCoursePage> {
         ],
         // --- END OF NEW BUTTON ---
       ),
+      drawer: const MainDrawer(),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator()) 
         : Column(
