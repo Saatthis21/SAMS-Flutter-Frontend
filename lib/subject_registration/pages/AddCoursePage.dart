@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // The Vault
 import '../domain/entities/Course.dart';
 import '../domain/entities/LabSection.dart';
-import '../applications/GetAvailableCourses.dart';
+import '../applications/GetAvailableCourse.dart';
 import '../applications/AddCourse.dart';
 import '../applications/GetCourseLabs.dart';
 import 'MyRegistrationPage.dart';
@@ -15,7 +15,11 @@ class AddCoursePage extends StatefulWidget {
 }
 
 class _AddCoursePageState extends State<AddCoursePage> {
-  List<Course> _availableCourses = [];
+  List<Course> availableCourses = [];
+  String searchQuery = "";            
+  String? selectedCourse;             
+  int? selectedLab;                   
+
   bool _isLoading = true;
 
   // Variables to hold the logged-in student's data
@@ -28,7 +32,7 @@ class _AddCoursePageState extends State<AddCoursePage> {
   void initState() {
     super.initState();
     _loadStudentData(); // 1. Load the student info from the vault
-    _loadCourse();      // 2. Load the courses from Laravel
+    loadCourse();      // 2. Load the courses from Laravel
   }
 
   // --- READ THE VAULT ---
@@ -42,10 +46,10 @@ class _AddCoursePageState extends State<AddCoursePage> {
     });
   }
 
-  Future<void> _loadCourse() async {
-    final courses = await GetAvailableCourses().execute();
+  Future<void> loadCourse() async {
+    final courses = await GetAvailableCourse().execute();
     setState(() {
-      _availableCourses = courses;
+      availableCourses = courses;
       _isLoading = false;
     });
   }
@@ -55,7 +59,7 @@ class _AddCoursePageState extends State<AddCoursePage> {
 
     try {
       // 1. Fetch the data as proper LabSection objects
-      List<LabSection> allLabs = await GetCourseLabs().execute(courseCode);
+      List<LabSection> allLabs = await GetAvailableCourse().executeFetchLabs(courseCode);
       Navigator.pop(context); // Close loading dialog
 
       // 2. Pass it directly to our new dynamic 2-step bottom sheet
@@ -172,7 +176,7 @@ class _AddCoursePageState extends State<AddCoursePage> {
                           onPressed: isFull ? null : () {
                             Navigator.pop(context); // Close sheet
                             // Call your real database submission function
-                            _submitCourseRegistration(courseCode, lab.labID); 
+                            onAddCourseClicked(courseCode, lab.labID); 
                           },
                           child: Text(isFull ? "Full" : "Select", style: const TextStyle(color: Colors.white)),
                         ),
@@ -188,7 +192,7 @@ class _AddCoursePageState extends State<AddCoursePage> {
   }
 
   // --- SEND TO DATABASE (NOW USING THE REAL STUDENT ID!) ---
-  Future<void> _submitCourseRegistration(String courseCode, int realLabID) async {
+  Future<void> onAddCourseClicked(String courseCode, int realLabID) async {
     // We removed "CB23019". It now uses the ID of whoever is logged in!
     showDialog(context: context, builder: (_) => const Center(child: CircularProgressIndicator()));
     
@@ -227,8 +231,7 @@ class _AddCoursePageState extends State<AddCoursePage> {
   }
 
   // --- THE NEW UI WITH THE CARD ---
-@override
-  Widget build(BuildContext context) {
+Widget render() {
     return Scaffold(
       backgroundColor: Colors.grey.shade200,
       appBar: AppBar(
@@ -281,9 +284,9 @@ class _AddCoursePageState extends State<AddCoursePage> {
               // THE COURSE LIST
               Expanded(
                 child: ListView.builder(
-                  itemCount: _availableCourses.length,
+                  itemCount: availableCourses.length,
                   itemBuilder: (context, index) {
-                    final course = _availableCourses[index];
+                    final course = availableCourses[index];
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
                       child: ListTile(
@@ -305,4 +308,12 @@ class _AddCoursePageState extends State<AddCoursePage> {
           ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return render(); // Simply calls your SDD method!
+  }
+ // End of class
 }
+
+

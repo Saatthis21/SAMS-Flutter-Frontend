@@ -50,8 +50,7 @@ class _PendingRegistrationPageState extends State<PendingRegistrationPage> {
     ).then((_) => loadPendingList()); // This refreshes the list when the Registrar comes back!
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget render() {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -144,6 +143,10 @@ class _PendingRegistrationPageState extends State<PendingRegistrationPage> {
                   },
                 ),
     );
+  }
+  @override
+  Widget build(BuildContext context) {
+    return render(); 
   }
 }
 

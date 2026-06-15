@@ -16,7 +16,7 @@ class ReviewRegistrationPage extends StatefulWidget {
 }
 
 class _ReviewRegistrationPageState extends State<ReviewRegistrationPage> {
-  Map<String, dynamic>? studentDetails;
+  Map<String, dynamic>? submissionDetails; 
   List<dynamic> courses = [];
   bool isLoading = true;
   bool isProcessing = false;
@@ -38,7 +38,7 @@ class _ReviewRegistrationPageState extends State<ReviewRegistrationPage> {
 
       if (response.statusCode == 200 && data['success'] == true) {
         setState(() {
-          studentDetails = data['student'];
+          submissionDetails = data['student'];
           courses = data['courses'];
           isLoading = false;
         });
@@ -108,11 +108,13 @@ class _ReviewRegistrationPageState extends State<ReviewRegistrationPage> {
       ),
     );
   }
+  void onApproveClicked() {
+    submitDecision('Approve', null);
+  }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget render() {
     if (isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (studentDetails == null) return const Scaffold(body: Center(child: Text("Data not found.")));
+    if (submissionDetails == null) return const Scaffold(body: Center(child: Text("Data not found.")));
 
     // Calculate total credit hours for the profile card
     int totalCredits = courses.fold(0, (sum, item) => sum + (int.tryParse(item['credit_hours'].toString()) ?? 0));
@@ -155,8 +157,8 @@ class _ReviewRegistrationPageState extends State<ReviewRegistrationPage> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(studentDetails!['student_name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text(studentDetails!['studentID'] ?? '', style: const TextStyle(fontSize: 14)),
+                          Text(submissionDetails!['student_name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text(submissionDetails!['studentID'] ?? '', style: const TextStyle(fontSize: 14)),
                         ],
                       )
                     ],
@@ -259,7 +261,7 @@ class _ReviewRegistrationPageState extends State<ReviewRegistrationPage> {
                       backgroundColor: Colors.black,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
                     ),
-                    onPressed: () => submitDecision('Approve', null),
+                   onPressed: onApproveClicked,
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -280,6 +282,8 @@ class _ReviewRegistrationPageState extends State<ReviewRegistrationPage> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
                     ),
                     onPressed: onRejectClicked,
+                    
+                    
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -289,10 +293,17 @@ class _ReviewRegistrationPageState extends State<ReviewRegistrationPage> {
                       ],
                     ),
                   ),
+                  
                 ),
               ],
             ),
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return render(); 
+  }
+
 }

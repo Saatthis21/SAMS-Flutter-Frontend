@@ -6,7 +6,15 @@ class DropCourse {
   Future<String> execute(int registeredID) async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/drop-course/$registeredID');
-      final response = await http.delete(url);
+      
+      // ADDED HEADERS HERE to prevent <!DOCTYPE html> errors!
+      final response = await http.delete(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json', 
+        },
+      );
 
       final responseData = response.body.isNotEmpty
           ? json.decode(response.body)
