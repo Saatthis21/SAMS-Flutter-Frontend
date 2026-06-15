@@ -465,52 +465,36 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
           : Column(
               children: [
                 if (overallStatus == 'Pending Edit')
-                  Container(
-                    margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade50 : Colors.red.shade50,
-                      border: Border.all(
-                        color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade300 : Colors.red.shade300,
-                        width: 1
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          (_hasMadeChanges || !_hasRejectionReason) ? Icons.info_outline : Icons.error_outline,
-                          color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade700 : Colors.red.shade700,
+                    Container(
+                      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        // Blue if we have made changes, Red if there is an active Rejection Reason
+                        color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade50 : Colors.red.shade50,
+                        border: Border.all(
+                          color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade300 : Colors.red.shade300,
+                          width: 1
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                (_hasMadeChanges || !_hasRejectionReason) ? "Ready to Resubmit" : "Registration Rejected",
-                                style: TextStyle(
-                                  color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade700 : Colors.red.shade700,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                (_hasMadeChanges || !_hasRejectionReason)
-                                    ? "You have made changes to your cart. Please click 'Notify' at the bottom to send this back to the faculty."
-                                    : "Reason: $rejectionReason",
-                                style: TextStyle(
-                                  color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade900 : Colors.red.shade900, 
-                                  fontSize: 13
-                                ),
-                              ),
-                            ],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            (_hasMadeChanges || !_hasRejectionReason) ? Icons.info_outline : Icons.error_outline,
+                            color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade700 : Colors.red.shade700,
                           ),
-                        )
-                      ],
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              (_hasMadeChanges || !_hasRejectionReason) 
+                                  ? "Ready to Resubmit: You have made changes." 
+                                  : "Registration Rejected: $rejectionReason",
+                              style: TextStyle(color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade900 : Colors.red.shade900),
+                            ),
+                          )
+                        ],
+                      ),
                     ),
-                  ),
                 Container(
                   color: Colors.grey.shade200,
                   padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),

@@ -4,7 +4,6 @@ import '../domain/entities/Course.dart';
 import '../domain/entities/LabSection.dart';
 import '../applications/GetAvailableCourse.dart';
 import '../applications/AddCourse.dart';
-import '../applications/GetCourseLabs.dart';
 import 'MyRegistrationPage.dart';
 import '../../MainDrawer.dart'; // The Main Drawer (for navigation)
 
