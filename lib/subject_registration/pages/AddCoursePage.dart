@@ -10,6 +10,8 @@ import '../../MainDrawer.dart'; // The Main Drawer (for navigation)
 
 
 class AddCoursePage extends StatefulWidget {
+  const AddCoursePage({super.key});
+
   @override
   _AddCoursePageState createState() => _AddCoursePageState();
 }
@@ -136,7 +138,7 @@ class _AddCoursePageState extends State<AddCoursePage> {
                           setModalState(() => selectedBaseSection = sectionName);
                         },
                       );
-                    }).toList(),
+                    }),
 
                   // --- STEP 2: SHOW LABS FOR CHOSEN SECTION ---
                   if (selectedBaseSection != null)
@@ -177,7 +179,7 @@ class _AddCoursePageState extends State<AddCoursePage> {
                           child: Text(isFull ? "Full" : "Select", style: const TextStyle(color: Colors.white)),
                         ),
                       );
-                    }).toList(),
+                    }),
                 ],
               ),
             );

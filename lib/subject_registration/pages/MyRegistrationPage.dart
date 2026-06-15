@@ -234,7 +234,7 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => setModalState(() => selectedBaseSection = sectionName),
                       );
-                    }).toList(),
+                    }),
 
                   // --- STEP 2: SHOW LABS FOR CHOSEN SECTION ---
                   if (selectedBaseSection != null)
@@ -275,7 +275,7 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
                           child: Text(isCurrentlySelected ? "Current" : (isFull ? "Full" : "Select"), style: const TextStyle(color: Colors.white)),
                         ),
                       );
-                    }).toList(),
+                    }),
                 ],
               ),
             );

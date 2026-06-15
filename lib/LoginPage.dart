@@ -137,7 +137,7 @@ class _LoginPageState extends State<LoginPage> {
 
               // --- NEW ROLE DROPDOWN ---
               DropdownButtonFormField<String>(
-                value: selectedRole,
+                initialValue: selectedRole,
                 decoration: InputDecoration(
                   labelText: 'Select Role',
                   filled: true,
