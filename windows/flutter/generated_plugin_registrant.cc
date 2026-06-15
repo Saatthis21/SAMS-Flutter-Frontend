@@ -11,4 +11,9 @@
 void RegisterPlugins(flutter::PluginRegistry* registry) {
   PrintingPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("PrintingPlugin"));
+#include <geolocator_windows/geolocator_windows.h>
+
+void RegisterPlugins(flutter::PluginRegistry* registry) {
+  GeolocatorWindowsRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("GeolocatorWindows"));
 }

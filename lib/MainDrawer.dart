@@ -8,6 +8,15 @@ import 'manage_fee/pages/FeeSummaryPage.dart';
 import 'manage_fee/pages/PaymentHistoryPage.dart';
 import 'subject_registration/pages/AddCoursePage.dart';
 import 'subject_registration/pages/PendingRegistrationPage.dart';
+// Teammate's imports
+import 'subject_registration/pages/AddCoursePage.dart';
+import 'subject_registration/pages/PendingRegistrationPage.dart';
+import 'LoginPage.dart';
+// Manage Attendance
+import 'manage_attendance/pages/LecturerSessionPage.dart';
+import 'manage_attendance/pages/LiveSessionPage.dart';
+// Manage Reports
+import 'manage_report/pages/ManageReportDashboard.dart'; // Adjust path if needed
 
 class MainDrawer extends StatefulWidget {
   const MainDrawer({super.key});
@@ -23,6 +32,9 @@ class _MainDrawerState
   String _userRole = "Student";
 
   bool isBlocked = false;
+class _MainDrawerState extends State<MainDrawer> {
+  String _userRole = 'Student'; // Default
+  String _userId = ''; // Added to pass to your attendance pages
 
   @override
   void initState() {
@@ -44,6 +56,9 @@ class _MainDrawerState
           prefs.getString("user_role") ??
               "Student";
 
+      _userRole = prefs.getString('user_role') ?? 'Student';
+      // Ideally, you also save and retrieve the user's ID during login
+      _userId = prefs.getString('user_id') ?? 'CB23150';
     });
 
   }
@@ -116,6 +131,8 @@ class _MainDrawerState
 
                   : Colors.blue,
 
+              // Blue for student, Indigo for staff
+              color: _userRole == 'Staff' ? Colors.indigo : Colors.blue,
             ),
 
             child: Column(
@@ -140,6 +157,11 @@ class _MainDrawerState
 
                   size: 40,
 
+                  _userRole == 'Staff'
+                      ? Icons.admin_panel_settings
+                      : Icons.school,
+                  color: Colors.white,
+                  size: 40,
                 ),
 
                 const SizedBox(
@@ -164,6 +186,14 @@ class _MainDrawerState
 
                   ),
 
+                  _userRole == 'Staff'
+                      ? 'UMPSA SAMS\nSTAFF DASHBOARD'
+                      : 'UMPSA SAMS\nSTUDENT PORTAL',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
 
               ],
@@ -188,6 +218,7 @@ class _MainDrawerState
 
               onTap: () {
 
+                Navigator.pop(context); // Close drawer first
                 Navigator.pushReplacement(
 
                   context,
@@ -199,6 +230,40 @@ class _MainDrawerState
 
                   ),
 
+                  MaterialPageRoute(
+                    builder: (context) => PendingRegistrationPage(),
+                  ),
+                );
+              },
+            ),
+            // ---> YOUR LECTURER ATTENDANCE ROUTE <---
+            ListTile(
+              leading: const Icon(Icons.co_present),
+              title: const Text('Manage Attendance'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer smoothly
+                // Using standard push() so the Back Button works!
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => LecturerSessionPage(
+                      lecturerID: _userId,
+                      subjectCode: 'BCS2173',
+                    ),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.analytics),
+              title: const Text('Manage Reports'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer smoothly
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ManageReportDashboard(),
+                  ),
                 );
 
               },
@@ -313,6 +378,11 @@ class _MainDrawerState
 
                 }
 
+                Navigator.pop(context); // Close drawer first
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => AddCoursePage()),
+                );
               },
 
             ),
@@ -345,6 +415,24 @@ class _MainDrawerState
 
               },
 
+            // ---> YOUR STUDENT ATTENDANCE ROUTE <---
+            ListTile(
+              leading: const Icon(Icons.how_to_reg),
+              title: const Text('Attendance Check-in'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer smoothly
+                // Using standard push() so the Back Button works!
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => LiveSessionPage(
+                      studentID: _userId,
+                      sessionId: 1,
+                      subjectCode: 'BCS2173',
+                    ),
+                  ),
+                );
+              },
             ),
 
         
@@ -486,6 +574,7 @@ class _MainDrawerState
 
           const Divider(),
 
+          // --- LOGOUT BUTTON ---
           ListTile(
 
             leading: const Icon(
@@ -511,6 +600,8 @@ class _MainDrawerState
                   await SharedPreferences
                       .getInstance();
 
+              // ALWAYS CLEAR THE VAULT ON LOGOUT
+              SharedPreferences prefs = await SharedPreferences.getInstance();
               await prefs.clear();
 
               if (mounted) {
@@ -528,6 +619,8 @@ class _MainDrawerState
 
                   (route) => false,
 
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                  (route) => false,
                 );
 
               }

@@ -19,11 +19,15 @@ class MyRegistrationPage extends StatefulWidget {
 }
 
 class _MyRegistrationPageState extends State<MyRegistrationPage> {
+  // --- SDD ATTRIBUTES ---
   List<dynamic> draftedCourses = [];
-  int totalCreditHours = 20; // Default to 20 immediately to prevent null crashes
+  int totalCreditHours = 20; 
+  String? selectedCourse;
+  bool isNotifying = false;
+
+  // --- EXTRA VARIABLES ---
   String overallStatus = 'Pending';
   String? rejectionReason;
-  bool isNotifying = false;
   bool isLoading = true;
   int? droppingRegisteredID;
   bool _hasMadeChanges = false;
@@ -32,10 +36,12 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
   @override
   void initState() {
     super.initState();
-    render();
+    // MATCHES SDD ALGORITHM: CALL loadRegisteredList
+    loadRegisteredList(); 
   }
 
-  Future<void> render() async {
+  // --- DATABASE FETCH FUNCTION (Renamed from render) ---
+  Future<void> loadRegisteredList() async {
     setState(() => isLoading = true);
 
     try {
@@ -50,7 +56,6 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
         if (data['status'] == 'success') {
           setState(() {
             draftedCourses = data['data'];
-            // Safe parse for Balance
             totalCreditHours = int.tryParse(data['balanceCreditHours']?.toString() ?? '20') ?? 20;
             
             overallStatus = data['overallStatus']?.toString() ??
@@ -62,7 +67,6 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
         } else if (data['status'] == 'empty') {
           setState(() {
             draftedCourses = [];
-            // Safe parse for Balance
             totalCreditHours = int.tryParse(data['balanceCreditHours']?.toString() ?? '20') ?? 20;
             overallStatus = 'Pending';
             isLoading = false;
@@ -135,12 +139,11 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
               if (resultMessage == 'Success') {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Course dropped successfully."), backgroundColor: Colors.green));
                 
-                // ADDED THIS: Tell the UI we fixed the problem!
                 setState(() {
                   _hasMadeChanges = true; 
                 });
                 
-                render();
+                loadRegisteredList(); // <-- Updated to match new function name
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(resultMessage), backgroundColor: Colors.red));
               }
@@ -153,8 +156,7 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
   }
 
   // --- MODIFY COURSE LOGIC ---
-  // --- MODIFY COURSE LOGIC ---
-  void onModifyCourse(int registeredID, String courseCode, String currentLabNum) async {
+  void onModifySection(int registeredID, String courseCode, String currentLabNum) async {
     showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
     
     try {
@@ -162,7 +164,6 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
       if (!mounted) return;
       Navigator.pop(context); // Close spinner
 
-      // Call the unified dynamic bottom sheet
       showModifySectionSelection(context, registeredID, courseCode, allLabs, currentLabNum);
 
     } catch (e) {
@@ -173,16 +174,15 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
   }
 
   void showModifySectionSelection(BuildContext context, int registeredID, String courseCode, List<LabSection> availableLabs, String currentLabNum) {
-    // 1. DYNAMICALLY GROUP THE OBJECTS
     Map<String, List<LabSection>> groupedSections = {};
     Map<int, String> labLetters = {}; 
     
     for (var lab in availableLabs) {
-      String fullLabNum = lab.labNum; // e.g., "Section 01A"
+      String fullLabNum = lab.labNum; 
       
       if (fullLabNum.length > 2) {
-        String baseSection = fullLabNum.substring(0, fullLabNum.length - 1).trim(); // "Section 01"
-        String labLetter = fullLabNum.substring(fullLabNum.length - 1); // "A"
+        String baseSection = fullLabNum.substring(0, fullLabNum.length - 1).trim(); 
+        String labLetter = fullLabNum.substring(fullLabNum.length - 1); 
         
         labLetters[lab.labID] = "Lab $labLetter";
 
@@ -195,7 +195,6 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
       }
     }
 
-    // 2. SHOW THE 2-STEP BOTTOM SHEET
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -210,13 +209,12 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- HEADER ---
                   Row(
                     children: [
                       if (selectedBaseSection != null)
                         IconButton(
                           icon: const Icon(Icons.arrow_back),
-                          onPressed: () => setModalState(() => selectedBaseSection = null), // Go back
+                          onPressed: () => setModalState(() => selectedBaseSection = null),
                         ),
                       Text(
                         selectedBaseSection == null ? "Select Section to Update" : "Select Lab for $selectedBaseSection",
@@ -226,7 +224,6 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
                   ),
                   const Divider(),
 
-                  // --- STEP 1: SHOW ONLY SECTIONS (01, 02) ---
                   if (selectedBaseSection == null)
                     ...groupedSections.keys.map((sectionName) {
                       return ListTile(
@@ -236,11 +233,10 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
                       );
                     }),
 
-                  // --- STEP 2: SHOW LABS FOR CHOSEN SECTION ---
                   if (selectedBaseSection != null)
                     ...groupedSections[selectedBaseSection]!.map((lab) {
                       bool isFull = lab.currentCapacity >= lab.maxCapacity;
-                      bool isCurrentlySelected = lab.labNum == currentLabNum; // Highlight their current lab!
+                      bool isCurrentlySelected = lab.labNum == currentLabNum; 
 
                       return ListTile(
                         title: Text(
@@ -269,7 +265,7 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
                             backgroundColor: isCurrentlySelected ? Colors.grey.shade400 : (isFull ? Colors.grey : Colors.blue.shade800)
                           ),
                           onPressed: (isFull || isCurrentlySelected) ? null : () {
-                            Navigator.pop(context); // Close sheet
+                            Navigator.pop(context); 
                             _submitModifyRegistration(registeredID, lab.labID); 
                           },
                           child: Text(isCurrentlySelected ? "Current" : (isFull ? "Full" : "Select"), style: const TextStyle(color: Colors.white)),
@@ -293,13 +289,13 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
       await ChangeLabSection().execute(registeredID, newLabID);
 
       if (!mounted) return;
-      Navigator.pop(context); // Close loading spinner
+      Navigator.pop(context);
 
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Update Successfully"), backgroundColor: Colors.green));
       setState(() {
-        _hasMadeChanges = true; // This will instantly turn the Smart Banner blue!
+        _hasMadeChanges = true; 
       });
-      render(); // Refresh the list
+      loadRegisteredList(); // <-- Updated to match new function name
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);
@@ -381,8 +377,6 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
     final registeredID = int.tryParse(course['registeredID']?.toString() ?? '') ?? 0;
     final status = _value(course['status'] ?? course['registration_status'], 'Pending');
     final isDropping = droppingRegisteredID == registeredID;
-
-    // --- 1. CREATE THE LOCK VARIABLE ---
     final bool isLocked = status != 'Pending' && status != 'Pending Edit';
 
     return Container(
@@ -415,9 +409,8 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
                   SizedBox(
                     width: 66, height: 30,
                     child: ElevatedButton(
-                      // --- 2. UPDATE THE MODIFY BUTTON ---
                       style: ElevatedButton.styleFrom(padding: EdgeInsets.zero, backgroundColor: isLocked ? Colors.grey.shade400 : Colors.blue.shade800, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))),
-                      onPressed: isLocked ? null : () => onModifyCourse(registeredID, _value(course['course_code'], ''), _value(course['lab_num'], '')),
+                      onPressed: isLocked ? null : () => onModifySection(registeredID, _value(course['course_code'], ''), _value(course['lab_num'], '')),
                       child: const Text("Modify", style: TextStyle(color: Colors.white, fontSize: 12)),
                     ),
                   ),
@@ -425,7 +418,6 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
                   SizedBox(
                     width: 66, height: 30,
                     child: ElevatedButton(
-                      // --- 3. UPDATE THE DROP BUTTON ---
                       style: ElevatedButton.styleFrom(padding: EdgeInsets.zero, backgroundColor: isLocked ? Colors.grey.shade400 : Colors.red.shade300, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6))),
                       onPressed: (isDropping || registeredID == 0 || isLocked) ? null : () => onDropCourse(registeredID, _value(course['course_code'], 'this course')),
                       child: isDropping ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text("Drop", style: TextStyle(color: Colors.white, fontSize: 12)),
@@ -456,8 +448,8 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  // --- MATCHES SDD METHOD TABLE: render() ---
+  Widget render() {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F6),
       appBar: AppBar(
@@ -472,60 +464,37 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-
-                // --- THE SMART REJECTION BANNER ---
                 if (overallStatus == 'Pending Edit')
-                  Container(
-                    margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      // Change color based on if they have made fixes yet
-                      color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade50 : Colors.red.shade50,
-                      border: Border.all(
-                        color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade300 : Colors.red.shade300,
-                        width: 1
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          // Change the icon from an Error to an Info box
-                          (_hasMadeChanges || !_hasRejectionReason) ? Icons.info_outline : Icons.error_outline,
-                          color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade700 : Colors.red.shade700,
+                    Container(
+                      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        // Blue if we have made changes, Red if there is an active Rejection Reason
+                        color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade50 : Colors.red.shade50,
+                        border: Border.all(
+                          color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade300 : Colors.red.shade300,
+                          width: 1
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                // Change the Title
-                                (_hasMadeChanges || !_hasRejectionReason) ? "Ready to Resubmit" : "Registration Rejected",
-                                style: TextStyle(
-                                  color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade700 : Colors.red.shade700,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                // Change the Description
-                                (_hasMadeChanges || !_hasRejectionReason)
-                                    ? "You have made changes to your cart. Please click 'Notify' at the bottom to send this back to the faculty."
-                                    : "Reason: $rejectionReason",
-                                style: TextStyle(
-                                  color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade900 : Colors.red.shade900, 
-                                  fontSize: 13
-                                ),
-                              ),
-                            ],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            (_hasMadeChanges || !_hasRejectionReason) ? Icons.info_outline : Icons.error_outline,
+                            color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade700 : Colors.red.shade700,
                           ),
-                        )
-                      ],
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              (_hasMadeChanges || !_hasRejectionReason) 
+                                  ? "Ready to Resubmit: You have made changes." 
+                                  : "Registration Rejected: $rejectionReason",
+                              style: TextStyle(color: (_hasMadeChanges || !_hasRejectionReason) ? Colors.blue.shade900 : Colors.red.shade900),
+                            ),
+                          )
+                        ],
+                      ),
                     ),
-                  ),
-                // --- END REJECTION BANNER ---
                 Container(
                   color: Colors.grey.shade200,
                   padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
@@ -587,5 +556,10 @@ class _MyRegistrationPageState extends State<MyRegistrationPage> {
             ),
     );
   }
-}
 
+  // --- FLUTTER NATIVE REQUIREMENT ---
+  @override
+  Widget build(BuildContext context) {
+    return render(); 
+  }
+}
