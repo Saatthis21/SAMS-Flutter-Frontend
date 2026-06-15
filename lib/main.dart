@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:sams_flutter_frontend/subject_registration/pages/MyRegistrationPage.dart';
 import 'LoginPage.dart';
 
 void main() {

@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'config/api.dart'; // Adjust path if necessary
-import 'subject_registration/pages/AddCoursePage.dart';    // Adjust path if necessary
+import 'config/api.dart'; 
+import 'subject_registration/pages/AddCoursePage.dart';  
 import 'subject_registration/pages/PendingRegistrationPage.dart'; // NEW: Added Staff Page Import
 
 class LoginPage extends StatefulWidget {
@@ -25,7 +25,10 @@ class _LoginPageState extends State<LoginPage> {
     // --- 1. THE STAFF BYPASS (No Database Needed) ---
     if (selectedRole == 'Staff') {
       if (_idController.text == 'admin' && _passwordController.text == 'admin123') {
-        // Send directly to the Staff Dashboard
+        // --- ADD THESE TWO LINES HERE ---
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_role', 'Staff'); 
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => PendingRegistrationPage())
@@ -57,6 +60,7 @@ class _LoginPageState extends State<LoginPage> {
       if (response.statusCode == 200 && data['success'] == true) {
         // Save the Student data to the vault
         SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_role', 'Student');
         await prefs.setString('student_id', data['student_id']);
         await prefs.setString('student_name', data['student_name']);
         await prefs.setString('student_course', data['student_course']);
