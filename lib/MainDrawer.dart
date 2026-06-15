@@ -1,26 +1,36 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'subject_registration/pages/AddCoursePage.dart';
-import 'subject_registration/pages/PendingRegistrationPage.dart';
+
+import 'LoginPage.dart';
 import 'manage_fee/pages/FeeSummaryPage.dart';
 import 'manage_fee/pages/PaymentHistoryPage.dart';
-import 'LoginPage.dart';
+import 'subject_registration/pages/AddCoursePage.dart';
+import 'subject_registration/pages/PendingRegistrationPage.dart';
 
 class MainDrawer extends StatefulWidget {
   const MainDrawer({super.key});
 
   @override
-  State<MainDrawer> createState() => _MainDrawerState();
+  State<MainDrawer> createState() =>
+      _MainDrawerState();
 }
 
-class _MainDrawerState extends State<MainDrawer> {
+class _MainDrawerState
+    extends State<MainDrawer> {
 
   String _userRole = "Student";
+
+  bool isBlocked = false;
 
   @override
   void initState() {
     super.initState();
+
     _loadRole();
+
+    checkBlockStatus();
   }
 
   Future<void> _loadRole() async {
@@ -38,6 +48,53 @@ class _MainDrawerState extends State<MainDrawer> {
 
   }
 
+  Future<void> checkBlockStatus() async {
+
+    SharedPreferences prefs =
+        await SharedPreferences.getInstance();
+
+    String studentId =
+        prefs.getString("student_id") ?? "";
+
+    if (studentId.isEmpty) {
+      return;
+    }
+
+    try {
+
+      final response = await http.get(
+
+        Uri.parse(
+
+          "http://127.0.0.1:8000/api/block/status/$studentId",
+
+        ),
+
+      );
+
+      if (response.statusCode == 200) {
+
+        final data =
+            jsonDecode(response.body);
+
+        setState(() {
+
+          isBlocked =
+              data["blocked"] ?? false;
+
+        });
+
+      }
+
+    } catch (e) {
+
+      debugPrint(
+        e.toString(),
+      );
+
+    }
+
+  }
   @override
   Widget build(BuildContext context) {
 
@@ -85,7 +142,9 @@ class _MainDrawerState extends State<MainDrawer> {
 
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(
+                  height: 10,
+                ),
 
                 Text(
 
@@ -135,8 +194,7 @@ class _MainDrawerState extends State<MainDrawer> {
 
                   MaterialPageRoute(
 
-                    builder: (context) =>
-
+                    builder: (_) =>
                         PendingRegistrationPage(),
 
                   ),
@@ -157,26 +215,103 @@ class _MainDrawerState extends State<MainDrawer> {
 
             ListTile(
 
-              leading: const Icon(Icons.book),
+              leading: Icon(
 
-              title:
-                  const Text("Subject Registration"),
+                isBlocked
+
+                    ? Icons.lock
+
+                    : Icons.book,
+
+                color: isBlocked
+
+                    ? Colors.red
+
+                    : Colors.black,
+
+              ),
+
+              title: Text(
+
+                "Subject Registration",
+
+                style: TextStyle(
+
+                  color: isBlocked
+
+                      ? Colors.grey
+
+                      : Colors.black,
+
+                ),
+
+              ),
 
               onTap: () {
 
-                Navigator.pushReplacement(
+                if (isBlocked) {
 
-                  context,
+                  showDialog(
 
-                  MaterialPageRoute(
+                    context: context,
 
-                    builder: (context) =>
+                    builder: (_) {
 
-                        AddCoursePage(),
+                      return AlertDialog(
 
-                  ),
+                        title: const Text(
 
-                );
+                          "Academic Access Blocked",
+
+                        ),
+
+                        content: const Text(
+
+                          "You have outstanding tuition fees.\n\nPlease settle your tuition fee before accessing Subject Registration.",
+
+                        ),
+
+                        actions: [
+
+                          TextButton(
+
+                            onPressed: () {
+
+                              Navigator.pop(
+                                  context);
+
+                            },
+
+                            child: const Text(
+                              "OK",
+                            ),
+
+                          ),
+
+                        ],
+
+                      );
+
+                    },
+
+                  );
+
+                } else {
+
+                  Navigator.pushReplacement(
+
+                    context,
+
+                    MaterialPageRoute(
+
+                      builder: (_) =>
+                          AddCoursePage(),
+
+                    ),
+
+                  );
+
+                }
 
               },
 
@@ -185,7 +320,10 @@ class _MainDrawerState extends State<MainDrawer> {
             ListTile(
 
               leading: const Icon(
-                  Icons.account_balance_wallet),
+
+                Icons.account_balance_wallet,
+
+              ),
 
               title:
                   const Text("Manage Fee"),
@@ -198,8 +336,7 @@ class _MainDrawerState extends State<MainDrawer> {
 
                   MaterialPageRoute(
 
-                    builder: (context) =>
-
+                    builder: (_) =>
                         const FeeSummaryPage(),
 
                   ),
@@ -210,65 +347,140 @@ class _MainDrawerState extends State<MainDrawer> {
 
             ),
 
-            ListTile(
+        
 
-              leading:
-                  const Icon(Icons.history),
+           ListTile(
 
-              title:
-                  const Text("Payment History"),
+  leading: Icon(
 
-              onTap: () {
+    isBlocked
+        ? Icons.lock
+        : Icons.how_to_reg,
 
-                Navigator.push(
+    color:
+        isBlocked
+            ? Colors.red
+            : Colors.black,
 
-                  context,
+  ),
 
-                  MaterialPageRoute(
+  title: Text(
 
-                    builder: (context) =>
+    "Attendance",
 
-                        const PaymentHistoryPage(),
+    style: TextStyle(
 
-                  ),
+      color:
+          isBlocked
+              ? Colors.grey
+              : Colors.black,
 
-                );
+    ),
 
-              },
+  ),
 
+  onTap: () {
+
+    if (isBlocked) {
+
+      showDialog(
+
+        context: context,
+
+        builder: (_) {
+
+          return const AlertDialog(
+
+            title: Text(
+              "Academic Access Blocked",
             ),
 
-            ListTile(
-
-              leading:
-                  const Icon(Icons.how_to_reg),
-
-              title:
-                  const Text("Attendance"),
-
-              onTap: () {
-
-                // Attendance Module
-
-              },
-
+            content: Text(
+              "Please settle your tuition fee before accessing Attendance.",
             ),
 
-            ListTile(
+          );
 
-              leading:
-                  const Icon(Icons.sports_volleyball),
+        },
 
-              title:
-                  const Text("Co-Curriculum"),
+      );
 
-              onTap: () {
+    } else {
 
-                // Co-Curriculum Module
+      // Attendance Module
 
-              },
+    }
 
+  },
+
+),
+
+           ListTile(
+
+  leading: Icon(
+
+    isBlocked
+        ? Icons.lock
+        : Icons.sports_volleyball,
+
+    color:
+        isBlocked
+            ? Colors.red
+            : Colors.black,
+
+  ),
+
+  title: Text(
+
+    "Co-Curriculum",
+
+    style: TextStyle(
+
+      color:
+          isBlocked
+              ? Colors.grey
+              : Colors.black,
+
+    ),
+
+  ),
+
+  onTap: () {
+
+    if (isBlocked) {
+
+      showDialog(
+
+        context: context,
+
+        builder: (_) {
+
+          return const AlertDialog(
+
+            title: Text(
+              "Academic Access Blocked",
             ),
+
+            content: Text(
+              "Please settle your tuition fee before accessing Co-Curriculum.",
+            ),
+
+          );
+
+        },
+
+      );
+
+    } else {
+
+      // Co-Curriculum Module
+
+    }
+
+  },
+
+),
+
 
           ],
 
@@ -309,8 +521,7 @@ class _MainDrawerState extends State<MainDrawer> {
 
                   MaterialPageRoute(
 
-                    builder: (context) =>
-
+                    builder: (_) =>
                         const LoginPage(),
 
                   ),
@@ -334,4 +545,3 @@ class _MainDrawerState extends State<MainDrawer> {
   }
 
 }
-
