@@ -9,4 +9,7 @@ class ApiConfig {
       '$baseUrl/attendance/getAttendanceReport';
   static const String exportSessionData =
       '$baseUrl/attendance/exportSessionData';
+
+  // Manage reports
+  static const String generateReport = '$baseUrl/reports/generate';
 }

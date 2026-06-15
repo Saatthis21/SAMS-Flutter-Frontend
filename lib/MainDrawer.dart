@@ -8,6 +8,8 @@ import 'LoginPage.dart';
 // Manage Attendance
 import 'manage_attendance/pages/LecturerSessionPage.dart';
 import 'manage_attendance/pages/LiveSessionPage.dart';
+// Manage Reports
+import 'manage_report/pages/ManageReportDashboard.dart'; // Adjust path if needed
 
 class MainDrawer extends StatefulWidget {
   const MainDrawer({super.key});
@@ -104,6 +106,19 @@ class _MainDrawerState extends State<MainDrawer> {
                       lecturerID: _userId,
                       subjectCode: 'BCS2173',
                     ),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.analytics),
+              title: const Text('Manage Reports'),
+              onTap: () {
+                Navigator.pop(context); // Close the drawer smoothly
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ManageReportDashboard(),
                   ),
                 );
               },
