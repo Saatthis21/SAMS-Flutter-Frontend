@@ -35,6 +35,8 @@ class _FeeSummaryPageState
 
   Future<void> loadFeeSummary() async {
 
+    if (!mounted) return;
+
     setState(() {
       isLoading = true;
     });
@@ -42,10 +44,14 @@ class _FeeSummaryPageState
     SharedPreferences prefs =
         await SharedPreferences.getInstance();
 
+    if (!mounted) return;
+
     studentId =
         prefs.getString("student_id") ?? "";
 
     if (studentId.isEmpty) {
+
+      if (!mounted) return;
 
       setState(() {
         isLoading = false;
@@ -58,25 +64,30 @@ class _FeeSummaryPageState
     var result =
         await GetFeeSummary.execute(studentId);
 
+    if (!mounted) return;
+
     if (result["success"] == true) {
+
+      final data = result["data"] as Map<String, dynamic>?;
+      final balance = double.tryParse(
+        data?["balance"]?.toString() ?? "0",
+      ) ?? 0;
 
       setState(() {
 
-        feeData = result["data"];
-
-        double balance = double.parse(
-          feeData!["balance"].toString(),
-        );
-
+        feeData = data;
         showNotification = balance > 0;
-
         isLoading = false;
 
       });
 
-      checkBlockStatus();
+      if (mounted) {
+        checkBlockStatus();
+      }
 
     } else {
+
+      if (!mounted) return;
 
       setState(() {
 
@@ -771,6 +782,8 @@ class _FeeSummaryPageState
 
   Future<void> checkBlockStatus() async {
 
+    if (!mounted) return;
+
     final response = await http.get(
 
       Uri.parse(
@@ -781,9 +794,11 @@ class _FeeSummaryPageState
 
     );
 
+    if (!mounted) return;
+
     final data = jsonDecode(response.body);
 
-    if (data["blocked"] == true) {
+    if (data["blocked"] == true && mounted) {
 
       showDialog(
 
