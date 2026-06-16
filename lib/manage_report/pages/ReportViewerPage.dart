@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../../config/api.dart';
 
 class ReportViewerPage extends StatefulWidget {
@@ -30,6 +33,48 @@ class _ReportViewerPageState extends State<ReportViewerPage> {
     _fetchReport();
   }
 
+  // --- PDF GENERATION LOGIC ---
+  Future<void> _generatePdf() async {
+    final pdf = pw.Document();
+
+    // Get table headers dynamically from the first record
+    final headers = _reportData.isNotEmpty
+        ? (_reportData[0] as Map<String, dynamic>).keys.toList()
+        : [];
+
+    // Get rows dynamically
+    final tableData = _reportData.map((row) {
+      return (row as Map<String, dynamic>).values
+          .map((val) => val.toString())
+          .toList();
+    }).toList();
+
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) {
+          return pw.Column(
+            children: [
+              pw.Text(
+                '${widget.reportType.toUpperCase()} REPORT',
+                style: pw.TextStyle(
+                  fontSize: 20,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 10),
+              pw.Table.fromTextArray(headers: headers, data: tableData),
+            ],
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+      name: '${widget.reportType}_Report.pdf',
+    );
+  }
+
   Future<void> _fetchReport() async {
     try {
       final response = await http.post(
@@ -52,9 +97,6 @@ class _ReportViewerPageState extends State<ReportViewerPage> {
           _summary = data['summary'];
           _isLoading = false;
         });
-      } else if (response.statusCode == 404) {
-        // SAMS-REQ-514: No Data Found Handling
-        _showErrorAndExit('No Data Available for the selected criteria.');
       } else {
         _showErrorAndExit(data['message'] ?? 'Failed to load report.');
       }
@@ -78,7 +120,12 @@ class _ReportViewerPageState extends State<ReportViewerPage> {
         title: Text('${widget.reportType.toUpperCase()} REPORT'),
         actions: [
           // SAMS-REQ-511 & 512: Export Buttons
-          IconButton(icon: const Icon(Icons.picture_as_pdf), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            onPressed: _reportData.isNotEmpty
+                ? _generatePdf
+                : null, // Enabled only if data exists
+          ),
           IconButton(icon: const Icon(Icons.table_view), onPressed: () {}),
         ],
       ),
@@ -86,7 +133,6 @@ class _ReportViewerPageState extends State<ReportViewerPage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // Summary Statistics Card (SAMS-REQ-510)
                 Card(
                   margin: const EdgeInsets.all(16),
                   color: Colors.blue[50],
@@ -103,8 +149,6 @@ class _ReportViewerPageState extends State<ReportViewerPage> {
                     ),
                   ),
                 ),
-
-                // Dynamic Tabular Data (SAMS-REQ-509)
                 Expanded(
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,

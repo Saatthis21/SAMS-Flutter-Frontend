@@ -1,15 +1,19 @@
 class ApiConfig {
-  // 10.0.2.2 is the required IP for an Android Emulator to talk to your local XAMPP/Laravel server
   static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // Attendance Module Endpoints
   static const String initiateSession = '$baseUrl/attendance/initiateSession';
   static const String checkIn = '$baseUrl/attendance/checkIn';
-  static const String getAttendanceReport =
-      '$baseUrl/attendance/getAttendanceReport';
-  static const String exportSessionData =
-      '$baseUrl/attendance/exportSessionData';
+  static const String getAttendanceReport = '$baseUrl/attendance/getAttendanceReport';
+  static const String exportSessionData = '$baseUrl/attendance/exportSessionData';
 
-  // Manage reports
+  // Manage Reports Endpoints
   static const String generateReport = '$baseUrl/reports/generate';
+
+  // Manage Co-curriculum Endpoints
+  static const String getCocurriculum = '$baseUrl/cocurriculum';
+  static const String claimCredit = '$baseUrl/cocurriculum/claim';
+  static const String approveCredit = '$baseUrl/cocurriculum/approve';
+  static const String rejectCredit = '$baseUrl/cocurriculum/reject';
+  static const String getPendingClaims = '$baseUrl/cocurriculum/pending/all';
 }
