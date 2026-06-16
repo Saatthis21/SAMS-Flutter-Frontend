@@ -1,6 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'AttendanceReportPage.dart';
 // Note: You would import your InitiateSession application class here
+// import '../config/api.dart'; // Uncomment and adjust to your api config file
 
 class LecturerSessionPage extends StatefulWidget {
   final String lecturerID;
@@ -19,7 +23,31 @@ class LecturerSessionPage extends StatefulWidget {
 class _LecturerSessionPageState extends State<LecturerSessionPage> {
   bool _isLoading = false;
   String? _activeSessionCode;
+  int? _activeSessionId; // Need this to query the DB
   String? _sessionStatus;
+
+  // --- DYNAMIC VARIABLES ---
+  int _checkedInCount = 0;
+  final int _totalStudents = 30; // Can be fetched from DB later
+  int _secondsRemaining = 900; // 15 minutes = 900 seconds
+
+  Timer? _countdownTimer;
+  Timer? _pollingTimer;
+
+  // ALWAYS clean up timers when leaving the page to prevent memory leaks
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  // Format seconds into MM:SS
+  String get _formattedTime {
+    int minutes = _secondsRemaining ~/ 60;
+    int seconds = _secondsRemaining % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
 
   // Algorithm: startNewSession()
   Future<void> _startNewSession() async {
@@ -27,14 +55,31 @@ class _LecturerSessionPageState extends State<LecturerSessionPage> {
 
     try {
       // In your real app, this calls the InitiateSession.execute() method
-      // For this UI, we simulate a successful API call generating a code
       await Future.delayed(const Duration(seconds: 1));
 
       setState(() {
-        _activeSessionCode = "A7X29P"; // Mapped exactly from your UI Wireframe
+        _activeSessionCode = "A7X29P";
+        _activeSessionId = 1; // Assuming ID 1 based on your seeder
         _sessionStatus = "ACTIVE";
+        _secondsRemaining = 900; // Reset clock
+        _checkedInCount = 0; // Reset count
       });
 
+      // 1. START UI CLOCK (Ticks every 1 second)
+      _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (_secondsRemaining > 0) {
+          setState(() => _secondsRemaining--);
+        } else {
+          _closeSession(); // Auto-close when time is up
+        }
+      });
+
+      // 2. START DATABASE POLLING (Ticks every 5 seconds)
+      _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+        _fetchLiveAttendanceCount();
+      });
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Session Started Successfully'),
@@ -42,6 +87,7 @@ class _LecturerSessionPageState extends State<LecturerSessionPage> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('SESSION FAILED'),
@@ -49,15 +95,44 @@ class _LecturerSessionPageState extends State<LecturerSessionPage> {
         ),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // Ping Laravel for the current count
+  Future<void> _fetchLiveAttendanceCount() async {
+    if (_activeSessionId == null) return;
+
+    try {
+      // Replace with your actual ApiConfig baseUrl
+      final response = await http.get(
+        Uri.parse(
+          'http://10.0.2.2:8000/api/attendance/count/$_activeSessionId',
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['status'] == 'success' && mounted) {
+          setState(() => _checkedInCount = data['count']);
+        }
+      }
+    } catch (e) {
+      debugPrint("Polling error: $e"); // Fails silently in the background
     }
   }
 
   // Algorithm: closeSession()
   void _closeSession() {
+    // Stop timers immediately
+    _countdownTimer?.cancel();
+    _pollingTimer?.cancel();
+
     setState(() {
       _activeSessionCode = null;
+      _activeSessionId = null;
       _sessionStatus = "CLOSED";
+      _checkedInCount = 0;
     });
   }
 
@@ -70,12 +145,11 @@ class _LecturerSessionPageState extends State<LecturerSessionPage> {
           icon: const Icon(Icons.arrow_back),
           tooltip: 'Go Back',
           onPressed: () {
-            // Checks if Flutter has a page history to pop back to
+            // WE REMOVED THE BLOCKING LOGIC HERE!
+            // Now the lecturer can leave freely.
             if (Navigator.canPop(context)) {
               Navigator.pop(context);
             } else {
-              // Fallback: If pushed from the Drawer (which destroys history),
-              // you can put a custom routing path here to go back to the Main Menu.
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Please use the Drawer menu to navigate back.'),
@@ -108,7 +182,7 @@ class _LecturerSessionPageState extends State<LecturerSessionPage> {
                         child: const Text('Start New Session'),
                       ),
               ] else ...[
-                // --- ACTIVE SESSION STATE (Steps 4 & 5) ---
+                // --- ACTIVE SESSION STATE ---
                 const Text(
                   'Active Class Code',
                   style: TextStyle(fontSize: 20, color: Colors.grey),
@@ -122,23 +196,28 @@ class _LecturerSessionPageState extends State<LecturerSessionPage> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'Time Remaining: 14:59',
-                  style: TextStyle(color: Colors.red, fontSize: 16),
+
+                // DYNAMIC TIMER
+                Text(
+                  'Time Remaining: $_formattedTime',
+                  style: const TextStyle(color: Colors.red, fontSize: 16),
                 ),
 
-                // STEP 4: DISPLAY ATTENDANCE COUNT
                 const SizedBox(height: 20),
-                const Text(
-                  'Checked In: 2/10',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
+
+                // DYNAMIC ATTENDANCE COUNT
+                Text(
+                  'Checked In: $_checkedInCount/$_totalStudents',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
 
                 const SizedBox(height: 30),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // STEP 5: REPORT BUTTON (Navigation to AttendanceReportPage)
                     ElevatedButton(
                       onPressed: () {
                         Navigator.push(
@@ -154,16 +233,21 @@ class _LecturerSessionPageState extends State<LecturerSessionPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blueAccent,
                       ),
-                      child: const Text('Report'),
+                      child: const Text(
+                        'Report',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                     const SizedBox(width: 20),
-                    // CLOSE SESSION BUTTON
                     ElevatedButton(
                       onPressed: _closeSession,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                       ),
-                      child: const Text('Close Session'),
+                      child: const Text(
+                        'Close Session',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ],
                 ),

@@ -1,7 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http; // Added HTTP package
 
 // Note: Import your actual application classes here in your real project
-// import '../applications/GetAttendanceReport.dart';
 // import '../applications/ExportSessionData.dart';
 
 class AttendanceReportPage extends StatefulWidget {
@@ -25,7 +26,7 @@ class _AttendanceReportPageState extends State<AttendanceReportPage> {
   bool _isExporting = false;
   String _currentFilter = 'All'; // Can be 'All', 'Present', or 'Absent'
 
-  // Dummy data representing the parsed JSON from GetAttendanceReport.dart
+  // This will now hold live data from the database
   List<Map<String, dynamic>> _attendanceRecords = [];
 
   @override
@@ -34,36 +35,48 @@ class _AttendanceReportPageState extends State<AttendanceReportPage> {
     _fetchReportData();
   }
 
-  // Algorithm: getAttendanceReport()
+  // Algorithm: getAttendanceReport() - NOW LIVE!
   Future<void> _fetchReportData() async {
     setState(() => _isLoading = true);
 
     try {
-      // In production, you would call your GetAttendanceReport.execute() here.
-      // Simulating network delay and returning the data from your wireframe:
-      await Future.delayed(const Duration(seconds: 1));
+      // 1. MAKE THE REAL API CALL TO LARAVEL
+      // NOTE: Using 10.0.2.2 for Android Emulator testing
+      final response = await http.post(
+        Uri.parse('http://10.0.2.2:8000/api/attendance/getAttendanceReport'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'lecturer_id': widget.lecturerID,
+          'subject_code': widget.subjectCode,
+          'section': widget.section,
+        }),
+      );
 
-      setState(() {
-        _attendanceRecords = [
-          {
-            'studentID': 'CB23085',
-            'name': 'NIK AMIR IMRAN',
-            'status': 'Present',
-          },
-          {
-            'studentID': 'CB23102',
-            'name': 'MUHAMMAD YASRIN',
-            'status': 'Present',
-          },
-          {
-            'studentID': 'CB23011',
-            'name': 'AHMAD SAYUTI',
-            'status': 'Absent', // Wireframe shows a grey icon for this student
-          },
-        ];
-      });
+      // 2. PARSE THE REAL DATABASE DATA
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        if (data['status'] == 'success') {
+          setState(() {
+            // Overwrite the list with the real data from Laravel!
+            _attendanceRecords = List<Map<String, dynamic>>.from(data['data']);
+          });
+        } else {
+          throw Exception(
+            data['message'] ?? 'Failed to fetch attendance data.',
+          );
+        }
+      } else {
+        throw Exception('Server Error: ${response.statusCode}');
+      }
     } catch (e) {
       if (!mounted) return;
+      debugPrint(
+        'REPORT NETWORK CRASH: $e',
+      ); // Helpful for debugging in VS Code
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to load report: $e'),
