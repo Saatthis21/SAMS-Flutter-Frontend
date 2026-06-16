@@ -9,6 +9,7 @@ import 'subject_registration/pages/AddCoursePage.dart';
 import 'subject_registration/pages/PendingRegistrationPage.dart';
 
 import 'manage_fee/pages/TreasuryDashboardPage.dart';
+import 'manage_cocurriculum/pages/PusatAdabPage.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -110,7 +111,53 @@ class _LoginPageState extends State<LoginPage> {
 
       return;
     }
-
+// ===================================
+// PUSAT ADAB LOGIN
+// ===================================
+    if (selectedRole == "Pusat Adab") {
+      setState(() => _isLoading = true);
+      try {
+        final response = await http.post(
+          Uri.parse('${ApiConfig.baseUrl}/pusatadab/login'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({
+            'email': _idController.text,
+            'password': _passwordController.text,
+          }),
+        );
+        final data = json.decode(response.body);
+        if (response.statusCode == 200 && data['success'] == true) {
+          SharedPreferences prefs =
+          await SharedPreferences.getInstance();
+          await prefs.setString('user_role', 'Pusat Adab');
+          await prefs.setString('pusat_adab_name', data['name']);
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const PusatAdabPage(),
+              ),
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['message'] ?? 'Invalid credentials'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      setState(() => _isLoading = false);
+      return;
+    }
     // ===================================
     // STUDENT LOGIN (UNCHANGED)
     // ===================================
@@ -376,13 +423,10 @@ class _LoginPageState extends State<LoginPage> {
                 ),
 
                 items: [
-
                   "Student",
-
                   "Staff",
-
                   "Treasury",
-
+                  "Pusat Adab",
                 ].map(
 
                   (role) => DropdownMenuItem(
