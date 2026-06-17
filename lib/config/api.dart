@@ -10,8 +10,10 @@ class ApiConfig {
   // Manage Reports Endpoints
   static const String generateReport = '$baseUrl/reports/generate';
 
-  // Manage Co-curriculum Endpoints
+  // Co-curriculum Endpoints (Aida - CB23080)
   static const String getCocurriculum = '$baseUrl/cocurriculum';
+  static const String getAvailableSubjects = '$baseUrl/cocurriculum/available';
+  static const String registerCocurriculum = '$baseUrl/cocurriculum/register';
   static const String claimCredit = '$baseUrl/cocurriculum/claim';
   static const String approveCredit = '$baseUrl/cocurriculum/approve';
   static const String rejectCredit = '$baseUrl/cocurriculum/reject';

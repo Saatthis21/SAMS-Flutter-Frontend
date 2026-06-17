@@ -115,51 +115,31 @@ class _LoginPageState extends State<LoginPage> {
 // PUSAT ADAB LOGIN
 // ===================================
     if (selectedRole == "Pusat Adab") {
-      setState(() => _isLoading = true);
-      try {
-        final response = await http.post(
-          Uri.parse('${ApiConfig.baseUrl}/pusatadab/login'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode({
-            'email': _idController.text,
-            'password': _passwordController.text,
-          }),
-        );
-        final data = json.decode(response.body);
-        if (response.statusCode == 200 && data['success'] == true) {
-          SharedPreferences prefs =
-          await SharedPreferences.getInstance();
-          await prefs.setString('user_role', 'Pusat Adab');
-          await prefs.setString('pusat_adab_name', data['name']);
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const PusatAdabPage(),
-              ),
-            );
-          }
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(data['message'] ?? 'Invalid credentials'),
-              backgroundColor: Colors.red,
+      if (_idController.text == "pusatadab" &&
+          _passwordController.text == "adab123") {
+        SharedPreferences prefs =
+        await SharedPreferences.getInstance();
+        await prefs.setString("user_role", "Pusat Adab");
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const PusatAdabPage(),
             ),
           );
         }
-      } catch (e) {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
+          const SnackBar(
+            content: Text("Invalid Pusat Adab ID or Password"),
             backgroundColor: Colors.red,
           ),
         );
       }
-      setState(() => _isLoading = false);
       return;
     }
     // ===================================
-    // STUDENT LOGIN (UNCHANGED)
+    // STUDENT LOGIN
     // ===================================
 
     setState(() {

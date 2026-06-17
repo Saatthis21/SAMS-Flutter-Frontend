@@ -16,6 +16,7 @@ class CocurriculumPage extends StatefulWidget {
 
 class _CocurriculumPageState extends State<CocurriculumPage> {
   List<CocurriculumModel> _subjects = [];
+  List<Map<String, dynamic>> _availableSubjects = [];
   bool _isLoading = true;
   String _studentID = '';
   int _currentIndex = 0;
@@ -31,14 +32,31 @@ class _CocurriculumPageState extends State<CocurriculumPage> {
     _studentID = prefs.getString('student_id') ?? 'CB23080';
 
     try {
-      final response = await http.get(
+      // Get available subjects
+      final availableResponse = await http.get(
+        Uri.parse(ApiConfig.getAvailableSubjects),
+      );
+
+      // Get registered subjects
+      final registeredResponse = await http.get(
         Uri.parse('${ApiConfig.getCocurriculum}/$_studentID'),
       );
-      if (response.statusCode == 200) {
-        final List data = json.decode(response.body);
+
+      if (availableResponse.statusCode == 200) {
+        final List availableData =
+        json.decode(availableResponse.body);
+        final List registeredData =
+        registeredResponse.statusCode == 200
+            ? json.decode(registeredResponse.body)
+            : [];
+
         setState(() {
-          _subjects =
-              data.map((e) => CocurriculumModel.fromJson(e)).toList();
+          _availableSubjects = availableData
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList();
+          _subjects = registeredData
+              .map((e) => CocurriculumModel.fromJson(e))
+              .toList();
           _isLoading = false;
         });
       } else {
@@ -46,6 +64,43 @@ class _CocurriculumPageState extends State<CocurriculumPage> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _registerSubject(Map<String, dynamic> subject) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.registerCocurriculum),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'studentID': _studentID,
+          'subject_code': subject['subject_code'],
+          'subject_name': subject['subject_name'],
+        }),
+      );
+      final data = json.decode(response.body);
+      if (response.statusCode == 200 && data['success'] == true) {
+        _showRegistrationSuccess(subject['subject_name']);
+        _loadData();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['message'] ?? 'Failed'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -185,9 +240,14 @@ class _CocurriculumPageState extends State<CocurriculumPage> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _subjects.length,
+              itemCount: _availableSubjects.length,
               itemBuilder: (context, index) {
-                return _buildSubjectCard(_subjects[index]);
+                final subject = _availableSubjects[index];
+                final isRegistered = _subjects.any(
+                      (s) => s.subjectCode == subject['subject_code'],
+                );
+                return _buildAvailableSubjectCard(
+                    subject, isRegistered);
               },
             ),
             const SizedBox(height: 20),
@@ -197,9 +257,8 @@ class _CocurriculumPageState extends State<CocurriculumPage> {
     );
   }
 
-  Widget _buildSubjectCard(CocurriculumModel subject) {
-    bool isRegistered = subject.status != 'Not Registered';
-
+  Widget _buildAvailableSubjectCard(
+      Map<String, dynamic> subject, bool isRegistered) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
@@ -222,14 +281,14 @@ class _CocurriculumPageState extends State<CocurriculumPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    subject.subjectCode,
+                    subject['subject_code'],
                     style: TextStyle(
                         fontSize: 11,
                         color: Colors.grey.shade500),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    subject.subjectName,
+                    subject['subject_name'],
                     style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold),
@@ -242,7 +301,7 @@ class _CocurriculumPageState extends State<CocurriculumPage> {
                           color: Colors.amber.shade600),
                       const SizedBox(width: 4),
                       Text(
-                        '${subject.credits} Credits',
+                        '${subject['credits']} Credits',
                         style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade600),
@@ -253,7 +312,7 @@ class _CocurriculumPageState extends State<CocurriculumPage> {
                           color: Colors.grey.shade500),
                       const SizedBox(width: 4),
                       Text(
-                        'Slot: ${subject.hoursRecorded.toInt()} / ${subject.hoursRequired.toInt()}',
+                        'Slot: ${subject['slots']}',
                         style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade600),
@@ -277,8 +336,7 @@ class _CocurriculumPageState extends State<CocurriculumPage> {
               ),
               onPressed: isRegistered
                   ? null
-                  : () => _showRegistrationSuccess(
-                  subject.subjectName),
+                  : () => _registerSubject(subject),
               child: Text(
                 isRegistered ? 'Registered' : 'Register',
                 style: TextStyle(

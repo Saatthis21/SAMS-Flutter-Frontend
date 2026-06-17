@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../config/api.dart';
+import '../../MainDrawer.dart';
 
 class PusatAdabPage extends StatefulWidget {
   const PusatAdabPage({super.key});
@@ -26,7 +27,7 @@ class _PusatAdabPageState extends State<PusatAdabPage> {
   Future<void> _loadClaims() async {
     try {
       final response = await http.get(
-        Uri.parse('${ApiConfig.getPendingClaims}'),
+        Uri.parse(ApiConfig.getPendingClaims),
       );
       if (response.statusCode == 200) {
         final List data = json.decode(response.body);
@@ -38,8 +39,9 @@ class _PusatAdabPageState extends State<PusatAdabPage> {
           _approved = data
               .where((c) => c['status'] == 'Credit Awarded')
               .length;
-          _rejected =
-              data.where((c) => c['status'] == 'Rejected').length;
+          _rejected = data
+              .where((c) => c['status'] == 'Rejected')
+              .length;
           _isLoading = false;
         });
       } else {
@@ -71,8 +73,10 @@ class _PusatAdabPageState extends State<PusatAdabPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'),
-              backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -138,14 +142,17 @@ class _PusatAdabPageState extends State<PusatAdabPage> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                        content: Text('Error: $e'),
-                        backgroundColor: Colors.red),
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                 }
               }
             },
-            child: const Text('Reject',
-                style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Reject',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -172,8 +179,7 @@ class _PusatAdabPageState extends State<PusatAdabPage> {
                 Text(
                   '${claim['studentID']}',
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16),
+                      fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -198,10 +204,10 @@ class _PusatAdabPageState extends State<PusatAdabPage> {
                   fontWeight: FontWeight.bold, fontSize: 14),
             ),
             const SizedBox(height: 12),
-            _buildDetailRow('Subject',
-                claim['subject_name'] ?? ''),
-            _buildDetailRow('Subject code',
-                claim['subject_code'] ?? ''),
+            _buildDetailRow(
+                'Subject', claim['subject_name'] ?? ''),
+            _buildDetailRow(
+                'Subject code', claim['subject_code'] ?? ''),
             _buildDetailRow('Total hours recorded',
                 '${claim['hours_recorded']} hrs'),
             _buildDetailRow('Minimum required',
@@ -209,19 +215,6 @@ class _PusatAdabPageState extends State<PusatAdabPage> {
             _buildDetailRow('Credits to award',
                 '${claim['credits']} credits'),
             _buildDetailRow('Status', 'Pending review'),
-            const SizedBox(height: 20),
-            const Text(
-              'Participation records',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-            const SizedBox(height: 8),
-            _buildAttendanceRow(
-                'Training session', '+2 hrs', '10 Apr 2026'),
-            _buildAttendanceRow(
-                'Training session', '+2 hrs', '7 Apr 2026'),
-            _buildAttendanceRow(
-                'Tournament', '+4 hrs', '3 Apr 2026'),
             const SizedBox(height: 20),
             Row(
               children: [
@@ -288,34 +281,6 @@ class _PusatAdabPageState extends State<PusatAdabPage> {
     );
   }
 
-  Widget _buildAttendanceRow(
-      String title, String hours, String date) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title,
-              style: const TextStyle(fontSize: 13)),
-          Row(
-            children: [
-              Text(hours,
-                  style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold)),
-              const SizedBox(width: 12),
-              Text(date,
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade500)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -329,6 +294,7 @@ class _PusatAdabPageState extends State<PusatAdabPage> {
         backgroundColor: Colors.red.shade700,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
+      drawer: const MainDrawer(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -382,7 +348,7 @@ class _PusatAdabPageState extends State<PusatAdabPage> {
               const SizedBox(height: 16),
 
               Text(
-                'Pending review (${_pending})',
+                'Pending review ($_pending)',
                 style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15),
@@ -414,7 +380,8 @@ class _PusatAdabPageState extends State<PusatAdabPage> {
                 const NeverScrollableScrollPhysics(),
                 itemCount: _pendingClaims.length,
                 itemBuilder: (context, index) {
-                  final claim = _pendingClaims[index];
+                  final claim =
+                  _pendingClaims[index];
                   return _buildClaimCard(claim);
                 },
               ),
@@ -516,8 +483,7 @@ class _PusatAdabPageState extends State<PusatAdabPage> {
                 onPressed: () => _showClaimDetail(claim),
                 child: Text(
                   'Review',
-                  style:
-                  TextStyle(color: Colors.red.shade700),
+                  style: TextStyle(color: Colors.red.shade700),
                 ),
               ),
             ),
